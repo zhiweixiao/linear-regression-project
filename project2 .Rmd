@@ -1,0 +1,56 @@
+---
+title: "project 2"
+author: "zhiwei xiao"
+date: "6/19/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(forcats)
+
+owl_data = read_csv("http://www.stat.cmu.edu/cmsac/sure/materials/data/regression_projects/overwatch_odds.csv")
+colnames(owl_data)
+dim(owl_data)
+table(owl_data$stage)
+```
+
+```{r}
+new_owl_data <- owl_data %>% 
+  filter(stage == "OWL 2020 Regular Season") %>% 
+  mutate(winner_label = ifelse(winner_label == 0, "team_one", "team_two"),
+         corona_virus_isolation = ifelse(corona_virus_isolation == TRUE, "isolation", "no isolation")) %>%
+  select(-c("X1", "id", "date", "stage"))
+
+table(new_owl_data$corona_virus_isolation)
+head(new_owl_data)
+
+## winner geom_bar grph
+new_owl_data %>% ggplot(aes(fct_infreq(winner), 
+                             fill = corona_virus_isolation)) + 
+                  geom_bar() + 
+                  coord_flip()  + 
+                  theme_bw()
+
+## the more negative the odds are, the larger probability that this team would win.
+cor(new_owl_data$t2_odds, new_owl_data$t2_probability)
+ggplot(data = new_owl_data, aes(x = t2_odds, y = t2_probability)) + 
+  geom_point(size = 1, color = "red") + 
+  geom_smooth(method = "loess") +
+  theme_bw() + 
+  annotate("text", x=-1600, y=45, label= "correlation: -0.9298777")
+
+table(new_owl_data$t1_wins_alltime)
+
+## the data is kept updating 
+n_distinct(new_owl_data$t1_wins_alltime)
+n_distinct(new_owl_data$team_one) 
+```
+```{r}
+
+```
+
