@@ -13,23 +13,28 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(forcats)
 
-owl_data = read_csv("http://www.stat.cmu.edu/cmsac/sure/materials/data/regression_projects/overwatch_odds.csv")
+owl_data <- read_csv("http://www.stat.cmu.edu/cmsac/sure/materials/data/regression_projects/overwatch_odds.csv")
+
 colnames(owl_data)
-dim(owl_data)
+
+head(owl_data, n = 20)
 table(owl_data$stage)
 ```
 
 ```{r}
 new_owl_data <- owl_data %>% 
-  filter(stage == "OWL 2020 Regular Season") %>% 
-  mutate(winner_label = ifelse(winner_label == 0, "team_one", "team_two"),
-         corona_virus_isolation = ifelse(corona_virus_isolation == TRUE, "isolation", "no isolation")) %>%
-  select(-c("X1", "id", "date", "stage"))
+                mutate(winner_label = ifelse(winner_label == 0, "team_one", "team_two"),
+                       corona_virus_isolation = ifelse(corona_virus_isolation == TRUE, "isolation", "no isolation")) %>%
+                select(-c("X1", "id", "date", "stage","t1_odds","t1_probability","t1_place_last_season", 
+                          "t2_place_last_season","t1_wins_season", "t1_losses_season", "t2_wins_season",
+                          "t2_losses_season","t1_matches_season", "t2_matches_season", "t1_matches_alltime", 
+                          "t1_losses_alltime", "t2_matches_alltime", "t2_losses_alltime")) %>% 
+                na.omit()
 
 table(new_owl_data$corona_virus_isolation)
-head(new_owl_data)
+dim(new_owl_data)
 
-## winner geom_bar grph
+## winner geom_bar graph
 new_owl_data %>% ggplot(aes(fct_infreq(winner), 
                              fill = corona_virus_isolation)) + 
                   geom_bar() + 
@@ -37,20 +42,41 @@ new_owl_data %>% ggplot(aes(fct_infreq(winner),
                   theme_bw()
 
 ## the more negative the odds are, the larger probability that this team would win.
+
 cor(new_owl_data$t2_odds, new_owl_data$t2_probability)
+
 ggplot(data = new_owl_data, aes(x = t2_odds, y = t2_probability)) + 
   geom_point(size = 1, color = "red") + 
   geom_smooth(method = "loess") +
   theme_bw() + 
-  annotate("text", x=-1600, y=45, label= "correlation: -0.9298777")
+  annotate("text", x=-4000, y=45, label= "correlation: -0.816545")
 
-table(new_owl_data$t1_wins_alltime)
-
-## the data is kept updating 
-n_distinct(new_owl_data$t1_wins_alltime)
-n_distinct(new_owl_data$team_one) 
 ```
+
+
+
+```{r}
+## correlation matrix
+library(ggcorrplot)
+colnames(new_owl_data)
+
+owl_model_data <- new_owl_data %>% select(t1_win_percent_season, t2_win_percent_season, t1_win_percent_alltime, t2_win_percent_alltime,
+                                          t1_win_percent_last_5, t2_win_percent_last_5, t1_win_percent_vs_t2, t1_win_percent_last_10, 
+                                          t2_win_percent_last_10, t1_win_percent_last_20, t2_win_percent_last_20, t2_odds)
+
+round_cor_matrix <- round(cor(owl_model_data), 2)
+ggcorrplot(round_cor_matrix, 
+           hc.order = TRUE,
+           type = "lower",
+           lab = TRUE, tl.cex = 9, lab_size = 3)
+```
+
+
+
+
 ```{r}
 
 ```
+
+
 
