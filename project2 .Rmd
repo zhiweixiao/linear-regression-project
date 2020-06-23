@@ -60,6 +60,7 @@ ggplot(data = new_owl_data, aes(x = t2_odds, y = t2_probability)) +
 library(ggcorrplot)
 colnames(new_owl_data)
 
+## ignore t1_odds, t2_probability
 owl_model_data <- new_owl_data %>% select(t1_win_percent_season, t2_win_percent_season, t1_win_percent_alltime, t2_win_percent_alltime,
                                           t1_win_percent_last_5, t2_win_percent_last_5, t1_win_percent_vs_t2, t1_win_percent_last_10, 
                                           t2_win_percent_last_10, t1_win_percent_last_20, t2_win_percent_last_20, t2_odds)
@@ -72,11 +73,46 @@ ggcorrplot(round_cor_matrix,
 ```
 
 
+```{r}
+## best subset selection
+library(leaps)
+regfit.full <- regsubsets(t2_odds ~ ., data = owl_model_data, nvmax = ncol(owl_model_data) - 1)
+regfit.summary <- summary(regfit.full)
+```
 
 
 ```{r}
+par(mfrow = c(2,2))
+
+plot(regfit.summary$adjr2, type = "l", ylab = "Adjusted RSq", main = "Adjusted RSq", xlab = "Number of Variables")
+best_adjr2 <- which.max(regfit.summary$adjr2)
+abline(v = best_adjr2, lty = 2, col = "red")
+
+plot(regfit.summary$rss, type = "l", ylab = "RSS", main = "RSS", xlab = "Number of Variables")
+
+plot(regfit.summary$bic, type = "l", ylab = "BIC", main = "BIC", xlab = "Number of Variables")
+best_bic <- which.min(regfit.summary$bic)
+abline(v = best_bic, lty = 2, col = "red")
+
+plot(regfit.summary$cp, type = "l", ylab = "Cp", main = "Mallows Cp", xlab = "Number of Variables")
+best_cp <- which.min(regfit.summary$cp)
+abline(v = best_cp, lty = 2, col = "red")
+```
+
+
+
+
+```{r}
+### cross validation for three candidate models
+
+
+
+
+
 
 ```
+
+
 
 
 
