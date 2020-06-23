@@ -28,7 +28,7 @@ new_owl_data <- owl_data %>%
                 select(-c("X1", "id", "date", "stage","t1_odds","t1_probability","t1_place_last_season", 
                           "t2_place_last_season","t1_wins_season", "t1_losses_season", "t2_wins_season",
                           "t2_losses_season","t1_matches_season", "t2_matches_season", "t1_matches_alltime", 
-                          "t1_losses_alltime", "t2_matches_alltime", "t2_losses_alltime")) %>% 
+                          "t1_losses_alltime", "t2_matches_alltime", "t2_losses_alltime", "t1_losses_vs_t2", "t1_matches_vs_t2")) %>% 
                 na.omit()
 
 table(new_owl_data$corona_virus_isolation)
@@ -60,10 +60,16 @@ ggplot(data = new_owl_data, aes(x = t2_odds, y = t2_probability)) +
 library(ggcorrplot)
 colnames(new_owl_data)
 
-## ignore t1_odds, t2_probability
+## ignore t1_odds, t1_probability, t2_probability because they're very correlated with t2_odds
 owl_model_data <- new_owl_data %>% select(t1_win_percent_season, t2_win_percent_season, t1_win_percent_alltime, t2_win_percent_alltime,
                                           t1_win_percent_last_5, t2_win_percent_last_5, t1_win_percent_vs_t2, t1_win_percent_last_10, 
-                                          t2_win_percent_last_10, t1_win_percent_last_20, t2_win_percent_last_20, t2_odds)
+                                          t2_win_percent_last_10, t1_win_percent_last_20, t2_win_percent_last_20, t1_wins_vs_t2, t2_odds)
+
+## scaling the data
+owl_mean <- colMeans(owl_model_data)
+owl_std <- sqrt(diag(var(owl_model_data)))
+owl_model_data <- scale(owl_model_data, center = owl_mean, scale = owl_std)
+owl_model_data <- as_tibble(owl_model_data)
 
 round_cor_matrix <- round(cor(owl_model_data), 2)
 ggcorrplot(round_cor_matrix, 
@@ -74,10 +80,11 @@ ggcorrplot(round_cor_matrix,
 
 
 ```{r}
-## best subset selection
+## variables selection
 library(leaps)
 regfit.full <- regsubsets(t2_odds ~ ., data = owl_model_data, nvmax = ncol(owl_model_data) - 1)
 regfit.summary <- summary(regfit.full)
+regfit.summary
 ```
 
 
@@ -103,14 +110,41 @@ abline(v = best_cp, lty = 2, col = "red")
 
 
 ```{r}
-### cross validation for three candidate models
+### 10-fold cross validation for three candidate models
+library(boot)
+set.seed(200)
+
+model1 <- glm(t2_odds ~ t1_win_percent_season + t2_win_percent_season + t1_win_percent_last_5 + 
+              t2_win_percent_last_5 + t1_win_percent_last_20, data = owl_model_data)
+model1_cv_error <- cv.glm(owl_model_data, model1, K = 10)$delta[1]
+model1_cv_error
 
 
+model2 <- glm(t2_odds ~ t1_win_percent_season + t2_win_percent_season + t1_win_percent_last_5 + t2_win_percent_last_5 + 
+              t1_win_percent_last_20 + t2_win_percent_last_10, data = owl_model_data)
+model2_cv_error <- cv.glm(owl_model_data, model2, K = 10)$delta[1]
+model2_cv_error
 
 
+model3 <- glm(t2_odds ~ t1_win_percent_season + t2_win_percent_season + t1_win_percent_last_5 + t2_win_percent_last_5 + 
+              t1_win_percent_last_20 + t2_win_percent_last_10 + t2_win_percent_last_20, data = owl_model_data)
+model3_cv_error <- cv.glm(owl_model_data, model2, K = 10)$delta[1]
+model3_cv_error
 
+
+full_model <- glm(t2_odds ~ ., data = owl_model_data)
+full_cv_error <- cv.glm(owl_model_data, full_model, K = 10)$delta[1]
+full_cv_error
+```
+
+
+```{r}
 
 ```
+
+
+
+
 
 
 
