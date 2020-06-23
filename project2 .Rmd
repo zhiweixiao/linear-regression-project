@@ -141,37 +141,37 @@ full_cv_error
 
 ```{r}
 set.seed(200)
-X = model.matrix(t2_odds ~ ., owl_model_data)
-y = owl_model_data$t2_odds
+X <- model.matrix(t2_odds ~ ., owl_model_data)
+y <- owl_model_data$t2_odds
 
 
 ### ridge regression
-ridge.mod = glmnet(X, y, alpha = 0)
+ridge.mod <- glmnet(X, y, alpha = 0)
 plot(ridge.mod, xvar = "lambda", label = TRUE)
 
 ## best ridge regression model based on cross validation
-cv.out = cv.glmnet(X, y, alpha = 0)
+cv.out <- cv.glmnet(X, y, alpha = 0)
 plot(cv.out)
-bestlam = cv.out$lambda.min
-lambda.grid = cv.out$lambda
-mses = cv.out$cvm
-cv_error = mses[which(lambda.grid == bestlam)]
+bestlam <- cv.out$lambda.min
+lambda.grid <- cv.out$lambda
+mses <- cv.out$cvm
+cv_error <- mses[which(lambda.grid == bestlam)]
 cv_error
 
 
 
 
 ### lasso regression
-lasso.mod = glmnet(X, y, alpha = 1)
+lasso.mod <- glmnet(X, y, alpha = 1)
 plot(lasso.mod, xvar = "lambda", label = TRUE)
 
 ### best lasso regression model based on cross validation
-lasso.cv.out = cv.glmnet(X, y, alpha = 1)
+lasso.cv.out <- cv.glmnet(X, y, alpha = 1)
 plot(lasso.cv.out)
-lasso.bestlam = lasso.cv.out$lambda.min
-lasso.lambda.grid = lasso.cv.out$lambda
-lasso.mses = lasso.cv.out$cvm
-lasso.cv_error = lasso.mses[which(lasso.lambda.grid == lasso.bestlam)]
+lasso.bestlam <- lasso.cv.out$lambda.min
+lasso.lambda.grid <- lasso.cv.out$lambda
+lasso.mses <- lasso.cv.out$cvm
+lasso.cv_error <- lasso.mses[which(lasso.lambda.grid == lasso.bestlam)]
 lasso.cv_error
 ```
 
