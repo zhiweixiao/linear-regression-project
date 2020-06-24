@@ -9,17 +9,17 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
+```{r, warning = FALSE, message = FALSE}
 library(tidyverse)
 library(forcats)
 library(glmnet)
+library(ggcorrplot)
+library(boot)
+library(leaps)
 
 owl_data <- read_csv("http://www.stat.cmu.edu/cmsac/sure/materials/data/regression_projects/overwatch_odds.csv")
 
 colnames(owl_data)
-
-head(owl_data, n = 20)
-table(owl_data$stage)
 ```
 
 ```{r}
@@ -29,7 +29,8 @@ new_owl_data <- owl_data %>%
                 select(-c("X1", "id", "date", "stage","t1_odds","t1_probability","t1_place_last_season", 
                           "t2_place_last_season","t1_wins_season", "t1_losses_season", "t2_wins_season",
                           "t2_losses_season","t1_matches_season", "t2_matches_season", "t1_matches_alltime", 
-                          "t1_losses_alltime", "t2_matches_alltime", "t2_losses_alltime", "t1_losses_vs_t2", "t1_matches_vs_t2")) %>% 
+                          "t1_losses_alltime", "t2_matches_alltime", "t2_losses_alltime", "t1_losses_vs_t2", 
+                          "t1_matches_vs_t2")) %>% 
                 na.omit()
 
 table(new_owl_data$corona_virus_isolation)
@@ -40,17 +41,18 @@ new_owl_data %>% ggplot(aes(fct_infreq(winner),
                              fill = corona_virus_isolation)) + 
                   geom_bar() + 
                   coord_flip()  + 
-                  theme_bw()
+                  theme_bw() + xlab("team name") + ylab("winning count") + 
+                  ggtitle("winning count for each team before and after coronavirus isolation") +
+                  scale_fill_manual("legend", values = c("isolation" = "springgreen", "no isolation" = "hotpink"))
 
 ## the more negative the odds are, the larger probability that this team would win.
 
 cor(new_owl_data$t2_odds, new_owl_data$t2_probability)
-
 ggplot(data = new_owl_data, aes(x = t2_odds, y = t2_probability)) + 
   geom_point(size = 1, color = "red") + 
   geom_smooth(method = "loess") +
   theme_bw() + 
-  annotate("text", x=-4000, y=45, label= "correlation: -0.816545")
+  annotate("text", x=-4000, y=45, label= "correlation: -0.816545", color = "royalblue", size = 5)
 
 ```
 
@@ -58,7 +60,7 @@ ggplot(data = new_owl_data, aes(x = t2_odds, y = t2_probability)) +
 
 ```{r}
 ## correlation matrix
-library(ggcorrplot)
+
 colnames(new_owl_data)
 
 ## ignore t1_odds, t1_probability, t2_probability because they're very correlated with t2_odds
@@ -77,12 +79,13 @@ ggcorrplot(round_cor_matrix,
            hc.order = TRUE,
            type = "lower",
            lab = TRUE, tl.cex = 9, lab_size = 3)
+
 ```
 
 
 ```{r}
 ## variables selection
-library(leaps)
+
 regfit.full <- regsubsets(t2_odds ~ ., data = owl_model_data, nvmax = ncol(owl_model_data) - 1)
 regfit.summary <- summary(regfit.full)
 regfit.summary
@@ -111,8 +114,8 @@ abline(v = best_cp, lty = 2, col = "red")
 
 
 ```{r}
-### 10-fold cross validation for three candidate models
-library(boot)
+### 10-fold cross validation for three candidate models chosen by the variable selections
+
 set.seed(200)
 
 model1 <- glm(t2_odds ~ t1_win_percent_season + t2_win_percent_season + t1_win_percent_last_5 + 
@@ -129,7 +132,7 @@ model2_cv_error
 
 model3 <- glm(t2_odds ~ t1_win_percent_season + t2_win_percent_season + t1_win_percent_last_5 + t2_win_percent_last_5 + 
               t1_win_percent_last_20 + t2_win_percent_last_10 + t2_win_percent_last_20, data = owl_model_data)
-model3_cv_error <- cv.glm(owl_model_data, model2, K = 10)$delta[1]
+model3_cv_error <- cv.glm(owl_model_data, model3, K = 10)$delta[1]
 model3_cv_error
 
 
@@ -138,8 +141,15 @@ full_cv_error <- cv.glm(owl_model_data, full_model, K = 10)$delta[1]
 full_cv_error
 ```
 
+```{r}
+summary(model2)
+plot(model2$residuals ~ model2$fitted.values, main = "Final Model Residual Plot", xlab = "Fitted Values", ylab = "Residuals")
+abline(a = 0, b = 0, col = "gray60")
+```
+
 
 ```{r}
+par(mfrow = c(2,2))
 set.seed(200)
 X <- model.matrix(t2_odds ~ ., owl_model_data)
 y <- owl_model_data$t2_odds
